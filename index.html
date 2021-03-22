@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Recharts</title>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.7.2/prop-types.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.6.3/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.3/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/1.8.5/Recharts.js"></script>
+
+    <script src="./task_recharts.js"></script>
+
+    <script>    
+
+        "use strict";
+
+        let _Recharts = Recharts;
+        let Line = _Recharts.Line;
+        let XAxis = _Recharts.XAxis;
+        let YAxis = _Recharts.YAxis;
+        let LineChart = _Recharts.LineChart;
+        let CartesianGrid = _Recharts.CartesianGrid;
+        let ReferenceLine = _Recharts.ReferenceLine;
+        
+        let data = [
+        {
+            name: "Page A",
+            uv: 4000,
+            pv: 2400,
+            amt: 2400
+        },
+        {
+            name: "Page B",
+            uv: 3000,
+            pv: 1398,
+            amt: 2210
+        },
+        {
+            name: "Page C",
+            uv: 2000,
+            pv: 9800,
+            amt: 2290
+        },
+        {
+            name: "Page D",
+            uv: 2780,
+            pv: 3908,
+            amt: 2000
+        },
+        {
+            name: "Page E",
+            uv: 1890,
+            pv: 4800,
+            amt: 2181
+        },
+        {
+            name: "Page F",
+            uv: 2390,
+            pv: 3800,
+            amt: 2500
+        },
+        {
+            name: "Page G",
+            uv: 3490,
+            pv: 4300,
+            amt: 2100
+        }];
+
+        // ************************************************************** \\
+        // вычисление значений avg функций uv и pv
+        function countAvg(data) {
+            let avg_uv = 0;
+            let avg_pv = 0;
+            for (let i=0; i < data.length; i++) {
+                avg_uv = avg_uv + data[i].uv;
+                avg_pv = avg_pv + data[i].pv;
+            }
+            return [avg_uv/data.length, avg_pv/data.length];
+        }
+        let avg = countAvg(data); //массив средних значений uv и pv
+        // ************************************************************** \\
+
+        // -------------------------------------------------------------------------------- \\
+        // вычисление значений stddev функций uv и pv
+        function countStddev(data, avg) {
+            let stddev_uv = 0;
+            let stddev_pv = 0;
+            for (let i=0; i < data.length; i++) {
+                stddev_uv = stddev_uv + (data[i].uv - avg[0])**2;
+                stddev_pv = stddev_pv + (data[i].pv - avg[1])**2;
+            }
+            return [Math.sqrt(stddev_uv/data.length), Math.sqrt(stddev_pv/data.length)];
+        }
+        let stddev = countStddev(data, avg); //массив среднеквадратичных отклонений uv и pv
+        // -------------------------------------------------------------------------------- \\
+
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \\
+        // max и min значения функции pv
+        const { min_pv, max_pv } = data.reduce((result, dataPoint) => ({
+            min_pv: (dataPoint.pv < result.min_pv || result.min_pv === 0) ? dataPoint.pv : result.min_pv,
+            max_pv: (dataPoint.pv > result.max_pv || result.max_pv === 0) ? dataPoint.pv : result.max_pv,
+  	    }), { min_pv: 0, max_pv: 0 }); 
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \\
+        // ================================================================================================== \\
+        // max и min значения функции uv
+        const { min_uv, max_uv } = data.reduce((result, dataPoint) => ({
+            min_uv: (dataPoint.uv < result.min_uv || result.min_uv === 0) ? dataPoint.uv : result.min_uv,
+            max_uv: (dataPoint.uv > result.max_uv || result.max_uv === 0) ? dataPoint.uv : result.max_uv,
+  	    }), { min_uv: 0, max_uv: 0 }); 
+        // ================================================================================================== \\  
+
+        // ######################################################################################################## \\
+        // вычисление значений интервала (avg-stddev, avg+stddev) функций uv и pv в процентах для построения градиента
+        let percentage_uv = [((avg[0] - stddev[0]) - min_uv)*100/(max_uv - min_uv), ((avg[0] + stddev[0]) - min_uv)*100/(max_uv - min_uv)]; //значения интервала (avg-stddev, avg+stddev) функции uv в процентах
+        let percentage_pv = [((avg[1] - stddev[1]) - min_pv)*100/(max_pv - min_pv), ((avg[1] + stddev[1]) - min_pv)*100/(max_pv - min_pv)]; //значения интервала (avg-stddev, avg+stddev) функции pv в процентах
+        // ######################################################################################################## \\
+       
+        let App = function App() {
+          return React.createElement(
+                LineChart,
+                { width: 500, height: 300, data: data, 
+                  margin: { top: 5, right: 30, left: 20, bottom: 5 } },
+                  React.createElement(CartesianGrid, { strokeDasharray: "3 3" }), 
+                  React.createElement(XAxis, { dataKey: "name" }),
+                  React.createElement(YAxis, null),
+                  React.createElement(ReferenceLine, {y: avg[0] - stddev[0], label: {value: "avg_uv - stddev_uv", position: 'insideRight'}, stroke: "yellow"}), //линия интервала (avg-stddev) функции uv
+                  React.createElement(ReferenceLine, {y: avg[0] + stddev[0], label: {value: "avg_uv + stddev_uv", position: 'insideRight'}, stroke: "yellow"}), //линия интервала (avg+stddev) функции uv
+                  React.createElement(ReferenceLine, {y: avg[1] - stddev[1], label: "avg_pv - stddev_pv", stroke: "green"}), //линия интервала (avg-stddev) функции pv
+                  React.createElement(ReferenceLine, {y: avg[1] + stddev[1], label: "avg_pv + stddev_pv", stroke: "green"}), //линия интервала (avg+stddev) функции pv
+               
+                  React.createElement("defs", null, React.createElement("linearGradient", {
+                        id: "gradient",
+                        x1: "0%",
+                        y1: "100%",
+                        x2: "0%",
+                        y2: "0%"
+                  }, 
+                  React.createElement("stop", {
+                        offset: "0%",
+                        stopColor: "red"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_pv[0]}%`,
+                        stopColor: "red"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_pv[0]}%`,
+                        stopColor: "#8884d8"
+                  }),
+                  React.createElement("stop", {
+                        offset: `${percentage_pv[1]}%`,
+                        stopColor: "#8884d8"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_pv[1]}%`,
+                        stopColor: "red"
+                  }),
+                  React.createElement("stop", {
+                        offset: "100%",
+                        stopColor: "red"
+                  }))),
+                  React.createElement(Line, { type: "monotone", dataKey: "pv", stroke: "url(#gradient)", dot: false}),
+
+                  React.createElement("defs", null, React.createElement("linearGradient", {
+                        id: "gradient1",
+                        x1: "0%",
+                        y1: "100%",
+                        x2: "0%",
+                        y2: "0%"
+                  }, 
+                  React.createElement("stop", {
+                        offset: "0%",
+                        stopColor: "red"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_uv[0]}%`,
+                        stopColor: "red"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_uv[0]}%`,
+                        stopColor: "#82ca9d"
+                  }),
+                  React.createElement("stop", {
+                        offset: `${percentage_uv[1]}%`,
+                        stopColor: "#82ca9d"
+                  }), 
+                  React.createElement("stop", {
+                        offset: `${percentage_uv[1]}%`,
+                        stopColor: "red"
+                  }),
+                  React.createElement("stop", {
+                        offset: "100%",
+                        stopColor: "red"
+                  }))),
+                  React.createElement(Line, { type: "monotone", dataKey: "uv", stroke: "url(#gradient1)", dot: false}),
+          );
+        };
+        
+        ReactDOM.render(React.createElement(App, null), document.getElementById('app'));
+
+
+    </script>
+</body>
+</html>
